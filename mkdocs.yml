@@ -1,0 +1,10 @@
+site_name: pytest-salt-formula
+site_description: A pytest plugin for testing salt formulae.
+site_author: Martin Walsh
+
+theme: readthedocs
+
+repo_url: https://github.com/martinwalsh/pytest-salt-formula
+
+pages:
+- Home: index.md
