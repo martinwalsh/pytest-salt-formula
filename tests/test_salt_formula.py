@@ -140,17 +140,24 @@ test_apply_should_mock_itself:
 """
 
 
-def test_salt_minion_state_apply_is_disabled(testdir):
+def test_salt_minion_state_apply_is_mocked(testdir):
     testdir.makepyfile("""
-        def test_show_sls(salt_minion):
-            assert type(salt_minion.cmd('state.apply', 'teststate0')) == dict
+        import logging
+
+        def test_state_apply(salt_minion, caplog):
+            with caplog.at_level(logging.INFO, logger='salt'):
+                assert type(salt_minion.cmd('state.apply', 'teststate0')) == dict
+            assert 'Not called, mocked' in caplog.text
     """)
 
     slsfile = testdir.tmpdir.mkdir('../teststate0/').join('init.sls')
     slsfile.write(sls0)
 
-    result = testdir.runpytest('-v')
+    result = testdir.runpytest('-vv')
     result.assert_outcomes(passed=1)
+    result.stdout.fnmatch_lines([
+        '*::test_state_apply PASSED*',
+    ])
 
 
 sls1 = """\
@@ -170,17 +177,39 @@ whatever:
 """
 
 
-# def test_show_sls(testdir):
-#     testdir.makepyfile("""
-#         def test_show_sls(show_sls):
-#             with show_sls('teststate1', {}) as sls:
-#                 from salt.utils.yaml import safe_dump
-#                 print(safe_dump(sls, default_flow_style=False))
-#                 assert sls == ''
-#     """)
-#
-#     slsfile = testdir.tmpdir.mkdir('../teststate1/').join('init.sls')
-#     slsfile.write(sls1)
-#
-#     result = testdir.runpytest('-v')
-#     result.assert_outcomes(passed=1)
+def test_show_sls(testdir):
+    testdir.makepyfile("""
+        from salt.utils.odict import OrderedDict
+
+        def test_show_sls(show_sls):
+            with show_sls('teststate1', {}) as sls:
+                from salt.utils.yaml import safe_dump
+                print(safe_dump(sls, default_flow_style=False))
+                assert type(sls) in (OrderedDict, dict, list)
+    """)
+
+    slsfile = testdir.tmpdir.mkdir('../teststate1/').join('init.sls')
+    slsfile.write(sls1)
+
+    result = testdir.runpytest('-v')
+    result.assert_outcomes(passed=1)
+
+
+def test_show_sls_contain_id(testdir):
+    testdir.makepyfile("""
+        from salt.utils.odict import OrderedDict
+        from expects import expect
+        from pytest_salt_formula.matchers import contain_id
+
+        def test_show_sls(show_sls):
+            with show_sls('teststate1a', {}) as sls:
+                from salt.utils.yaml import safe_dump
+                print(safe_dump(sls, default_flow_style=False))
+                expect(sls).to(contain_id('whatever'))
+    """)
+
+    slsfile = testdir.tmpdir.mkdir('../teststate1a/').join('init.sls')
+    slsfile.write(sls1)
+
+    result = testdir.runpytest('-v')
+    result.assert_outcomes(passed=1)
