@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import pytest
+import salt.utils
 import salt.config
 import salt.client
 
@@ -50,18 +51,27 @@ def salt_minion(request, minion_opts):
     return caller
 
 
+class LowSLS(list):
+    def __init__(self, sls):
+        self._sls = sls
+        list.__init__(self, sls)
+
+    def to_yaml(self):
+        return salt.utils.yaml.safe_dump(self._sls, default_flow_style=False)
+
+
 @pytest.fixture(scope='function')
 def show_sls(salt_minion):
     @contextmanager
     def _show_sls(name, grains, pillar=None):
-        if pillar is None:
-            pillar = {}
+        # if pillar is None:
+        #     pillar = {}
 
         for key, value in grains.items():
             salt_minion.cmd('grains.setval', key, value)
 
         try:
-            yield salt_minion.cmd('state.show_low_sls', name, pillar=pillar)
+            yield LowSLS(salt_minion.cmd('state.show_low_sls', name, pillar=pillar))
         finally:
             for key in grains.keys():
                 salt_minion.cmd('grains.delkey', key)

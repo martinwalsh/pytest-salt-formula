@@ -72,4 +72,4 @@ target/
 .python-version
 
 # vim
-*.swp
+*.sw[po]

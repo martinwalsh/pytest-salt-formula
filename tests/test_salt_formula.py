@@ -183,9 +183,8 @@ def test_show_sls(testdir):
 
         def test_show_sls(show_sls):
             with show_sls('teststate1', {}) as sls:
-                from salt.utils.yaml import safe_dump
-                print(safe_dump(sls, default_flow_style=False))
-                assert type(sls) in (OrderedDict, dict, list)
+                print(sls.to_yaml())
+                assert len(sls) > 0
     """)
 
     slsfile = testdir.tmpdir.mkdir('../teststate1/').join('init.sls')
@@ -203,12 +202,32 @@ def test_show_sls_contain_id(testdir):
 
         def test_show_sls(show_sls):
             with show_sls('teststate1a', {}) as sls:
-                from salt.utils.yaml import safe_dump
-                print(safe_dump(sls, default_flow_style=False))
                 expect(sls).to(contain_id('whatever'))
     """)
 
     slsfile = testdir.tmpdir.mkdir('../teststate1a/').join('init.sls')
+    slsfile.write(sls1)
+
+    result = testdir.runpytest('-v')
+    result.assert_outcomes(passed=1)
+
+
+def test_show_sls_contain_id_with_comment(testdir):
+    testdir.makepyfile("""
+        from salt.utils.odict import OrderedDict
+        from expects import expect
+        from pytest_salt_formula.matchers import contain_id
+
+        def test_show_sls(show_sls):
+            with show_sls('teststate1b', {}) as sls:
+                print(sls.to_yaml())
+                result = expect(sls).to(
+                    contain_id('whatever')
+                    .with_comment('This is a comment again.')
+                )
+    """)
+
+    slsfile = testdir.tmpdir.mkdir('../teststate1b/').join('init.sls')
     slsfile.write(sls1)
 
     result = testdir.runpytest('-v')
