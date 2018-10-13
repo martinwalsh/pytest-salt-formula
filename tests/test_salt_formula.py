@@ -179,8 +179,6 @@ whatever:
 
 def test_show_sls(testdir):
     testdir.makepyfile("""
-        from salt.utils.odict import OrderedDict
-
         def test_show_sls(show_sls):
             with show_sls('teststate1', {}) as sls:
                 print(sls.to_yaml())
@@ -196,7 +194,6 @@ def test_show_sls(testdir):
 
 def test_show_sls_contain_id(testdir):
     testdir.makepyfile("""
-        from salt.utils.odict import OrderedDict
         from expects import expect
         from pytest_salt_formula.matchers import contain_id
 
@@ -214,7 +211,6 @@ def test_show_sls_contain_id(testdir):
 
 def test_show_sls_contain_id_with_comment(testdir):
     testdir.makepyfile("""
-        from salt.utils.odict import OrderedDict
         from expects import expect
         from pytest_salt_formula.matchers import contain_id
 
@@ -228,6 +224,77 @@ def test_show_sls_contain_id_with_comment(testdir):
     """)
 
     slsfile = testdir.tmpdir.mkdir('../teststate1b/').join('init.sls')
+    slsfile.write(sls1)
+
+    result = testdir.runpytest('-v')
+    result.assert_outcomes(passed=1)
+
+
+def test_show_sls_contain_id_with_the_incorrect_comment(testdir):
+    testdir.makepyfile("""
+        from expects import expect
+        from pytest_salt_formula.matchers import contain_id
+
+        def test_show_sls(show_sls):
+            with show_sls('teststate1c', {}) as sls:
+                print(sls.to_yaml())
+                result = expect(sls).to(
+                    contain_id('whatever')
+                    .with_comment('This is a test.')
+                )
+    """)
+
+    slsfile = testdir.tmpdir.mkdir('../teststate1c/').join('init.sls')
+    slsfile.write(sls1)
+
+    result = testdir.runpytest('-v')
+    result.assert_outcomes(failed=1)
+    result.stdout.fnmatch_lines([
+        "*value 'This is a test.' does not match property*",
+    ])
+
+
+def test_show_sls_contain_id_with_invalid_property(testdir):
+    testdir.makepyfile("""
+        from expects import expect
+        from pytest_salt_formula.matchers import contain_id
+
+        def test_show_sls(show_sls):
+            with show_sls('teststate1d', {}) as sls:
+                print(sls.to_yaml())
+                result = expect(sls).to(
+                    contain_id('whatever')
+                    .with_does_not_exist('This does not exist')
+                )
+    """)
+
+    slsfile = testdir.tmpdir.mkdir('../teststate1d/').join('init.sls')
+    slsfile.write(sls1)
+
+    result = testdir.runpytest('-v')
+    result.assert_outcomes(failed=1)
+    result.stdout.fnmatch_lines([
+        "*but: 'does_not_exist' property not found in state with id 'whatever'*",
+    ])
+
+
+def test_show_sls_contain_id_with_comment_and_whatever(testdir):
+    testdir.makepyfile("""
+        from salt.utils.odict import OrderedDict
+        from expects import expect
+        from pytest_salt_formula.matchers import contain_id
+
+        def test_show_sls(show_sls):
+            with show_sls('teststate1e', {}) as sls:
+                print(sls.to_yaml())
+                result = expect(sls).to(
+                    contain_id('test_a_test_configurable_test_state')
+                    .with_comment('This is a test.')
+                    .with_name('foo')
+                )
+    """)
+
+    slsfile = testdir.tmpdir.mkdir('../teststate1e/').join('init.sls')
     slsfile.write(sls1)
 
     result = testdir.runpytest('-v')
