@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from expects.matchers import Matcher
 
-__all__ = ['contain_id']
+__all__ = ['contain_id', 'contain_pkg', 'contain_service', 'contain_file']
 
 
 class StatefulMatcher(Matcher):
@@ -16,7 +16,20 @@ class StatefulMatcher(Matcher):
         )
 
 
-class PropertyValue(StatefulMatcher):
+class WithMethodsMixin(object):
+    def __getattr__(self, attr):
+        if attr.startswith('with_'):
+            return HasPropertyMatcher(attr[5:], self._parent_reference)
+        raise AttributeError(
+            "'{}' object has no attribute '{}'".format(self.__class__.__name__, attr)
+        )
+
+
+class PropertyValueMatcher(StatefulMatcher, WithMethodsMixin):
+    def __init__(self, expected, parent=None):
+        super(PropertyValueMatcher, self).__init__(expected, parent)
+        self._parent_reference = self._parent._parent
+
     def _match(self, lowstate):
         ok, reasons = self._parent._match(lowstate)
 
@@ -32,15 +45,8 @@ class PropertyValue(StatefulMatcher):
             )
         return ok, reasons
 
-    def __getattr__(self, attr):
-        if attr.startswith('with_'):
-            return HasProperty(attr[5:], self._parent._parent)
-        raise AttributeError(
-            "'{}' object has no attribute '{}'".format(self.__class__.__name__, attr)
-        )
 
-
-class HasProperty(StatefulMatcher):
+class HasPropertyMatcher(StatefulMatcher):
     def _match(self, lowstate):
         ok, reasons = self._parent._match(lowstate)
         try:
@@ -54,23 +60,56 @@ class HasProperty(StatefulMatcher):
         return self._matched is not None, reasons
 
     def __call__(self, value):
-        return PropertyValue(value, self)
+        return PropertyValueMatcher(value, self)
 
 
-class contain_id(StatefulMatcher):
+class ConditionalContainsMatcher(StatefulMatcher, WithMethodsMixin):
+    _no_match = NotImplemented
+
+    def __init__(self, expected, parent=None):
+        super(ConditionalContainsMatcher, self).__init__(expected, parent)
+        self._parent_reference = self
+
+    def _is_match(self, state):
+        raise NotImplementedError(
+            'subclasses should implement an `_is_match` method'
+        )
+
     def _match(self, lowstate):
         for state in lowstate:
-            if self._expected == state['__id__']:
+            if self._is_match(state):
                 self._matched = state
+                break
 
         ok, reasons = self._matched is not None, []
         if not ok:
-            reasons.append('state with id {!r} not found'.format(self._expected))
+            reasons.append(self._no_match.format(self._expected))
         return ok, reasons
 
-    def __getattr__(self, attr):
-        if attr.startswith('with_'):
-            return HasProperty(attr[5:], self)
-        raise AttributeError(
-            "'{}' object has no attribute '{}'".format(self.__class__.__name__, attr)
-        )
+
+class contain_id(ConditionalContainsMatcher):
+    _no_match = 'state with id {!r} not found'
+
+    def _is_match(self, state):
+        return self._expected == state['__id__']
+
+
+class contain_pkg(ConditionalContainsMatcher):
+    _no_match = 'no package state found with name {!r}'
+
+    def _is_match(self, state):
+        return state['state'] == 'pkg' and state['name'] == self._expected
+
+
+class contain_service(ConditionalContainsMatcher):
+    _no_match = 'no service state found with name {!r}'
+
+    def _is_match(self, state):
+        return state['state'] == 'service' and state['name'] == self._expected
+
+
+class contain_file(ConditionalContainsMatcher):
+    _no_match = 'no file state found with name {!r}'
+
+    def _is_match(self, state):
+        return state['state'] == 'file' and state['name'] == self._expected
