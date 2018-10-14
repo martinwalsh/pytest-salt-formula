@@ -19,7 +19,7 @@ class StatefulMatcher(Matcher):
 class WithMethodsMixin(object):
     def __getattr__(self, attr):
         if attr.startswith('with_'):
-            return HasPropertyMatcher(attr[5:], self._parent_reference)
+            return WithPropertyMatcher(attr[5:], self._parent_reference)
         raise AttributeError(
             "'{}' object has no attribute '{}'".format(self.__class__.__name__, attr)
         )
@@ -46,7 +46,30 @@ class PropertyValueMatcher(StatefulMatcher, WithMethodsMixin):
         return ok, reasons
 
 
-class HasPropertyMatcher(StatefulMatcher):
+class FileContentMatcher(StatefulMatcher):
+    def _match(self, lowstate):
+        ok, reasons = self._parent._match(lowstate)
+
+        if not ok:
+            return ok, reasons
+
+        if hasattr(self._expected, 'pattern'):  # regex match attempt
+            ok = self._expected.search(self._parent._matched['__file_content']) is not None
+            if not ok:
+                reasons.append(
+                    'pattern {!r} not found in file content'.format(self._expected.pattern)
+                )
+        else:
+            ok = self._expected in self._parent._matched['__file_content']
+            if not ok:
+                reasons.append(
+                    'text {!r} not found in file content'.format(self._expected)
+                )
+
+        return ok, reasons
+
+
+class WithPropertyMatcher(StatefulMatcher):
     def _match(self, lowstate):
         ok, reasons = self._parent._match(lowstate)
         try:
@@ -113,3 +136,6 @@ class contain_file(ConditionalContainsMatcher):
 
     def _is_match(self, state):
         return state['state'] == 'file' and state['name'] == self._expected
+
+    def that_has_content(self, pattern_or_string):
+        return FileContentMatcher(pattern_or_string, self)

@@ -125,8 +125,8 @@ def test_minion_opts_when_module_dirs_is_unset(testdir):
 
 def test_salt_minion_test_ping(testdir):
     testdir.makepyfile("""
-        def test_test_ping(salt_minion):
-            assert salt_minion.cmd('test.ping') == True
+        def test_test_ping(minion):
+            assert minion.cmd('test.ping') == True
     """)
 
     result = testdir.runpytest('-v')
@@ -144,9 +144,9 @@ def test_salt_minion_state_apply_is_mocked(testdir):
     testdir.makepyfile("""
         import logging
 
-        def test_state_apply(salt_minion, caplog):
+        def test_state_apply(minion, caplog):
             with caplog.at_level(logging.INFO, logger='salt'):
-                assert type(salt_minion.cmd('state.apply', 'teststate0')) == dict
+                assert type(minion.cmd('state.apply', 'teststate0')) == dict
             assert 'Not called, mocked' in caplog.text
     """)
 
@@ -324,7 +324,6 @@ test_a_managed_template:
     - template: jinja
     - context:
         shenanigans: true
-    - rendered: blah
 
 test_a_managed_service:
   service.running:
@@ -336,7 +335,7 @@ test_a_managed_service:
 
 
 m0 = """\
-{% if sheanaigans | default(False) %}
+{% if shenanigans | default(False) %}
 shenanigans
 {% endif %}
 """
@@ -373,23 +372,174 @@ def test_show_sls_with_pkg_service_config(testdir):
     result.assert_outcomes(passed=1)
 
 
-def test_show_sls_with_missing_package(testdir):
+sls3 = """\
+test_a_managed_package:
+  pkg.installed:
+    - name: python
+    - version: latest
+"""
+
+
+def test_show_sls_with_missing_package_should_fail(testdir):
     testdir.makepyfile("""
         from expects import expect
         from pytest_salt_formula.matchers import *
 
         def test_show_sls(show_sls):
-            with show_sls('teststate2b', {}) as sls:
+            with show_sls('teststate3a', {}) as sls:
                 print(sls.to_yaml())
                 expect(sls).to(contain_pkg('does-not-exist'))
     """)
 
-    statedir = testdir.tmpdir.mkdir('../teststate2b/')
+    statedir = testdir.tmpdir.mkdir('../teststate3a/')
     slsfile = statedir.join('init.sls')
-    slsfile.write(sls2)
+    slsfile.write(sls3)
 
     result = testdir.runpytest('-v')
     result.assert_outcomes(failed=1)
     result.stdout.fnmatch_lines([
         "*but: no package state found with name 'does-not-exist'*"
     ])
+
+
+def test_show_sls_with_missing_package_when_using_to_not_should_pass(testdir):
+    testdir.makepyfile("""
+        from expects import expect
+        from pytest_salt_formula.matchers import *
+
+        def test_show_sls(show_sls):
+            with show_sls('teststate3b', {}) as sls:
+                print(sls.to_yaml())
+                expect(sls).to_not(contain_pkg('does-not-exist'))
+    """)
+
+    statedir = testdir.tmpdir.mkdir('../teststate3b/')
+    slsfile = statedir.join('init.sls')
+    slsfile.write(sls3)
+
+    result = testdir.runpytest('-v')
+    result.assert_outcomes(passed=1)
+
+
+def test_show_sls_with_existing_package_when_using_to_not_should_fail(testdir):
+    testdir.makepyfile("""
+        from expects import expect
+        from pytest_salt_formula.matchers import *
+
+        def test_show_sls(show_sls):
+            with show_sls('teststate3c', {}) as sls:
+                print(sls.to_yaml())
+                expect(sls).to_not(contain_pkg('python'))
+    """)
+
+    statedir = testdir.tmpdir.mkdir('../teststate3c/')
+    slsfile = statedir.join('init.sls')
+    slsfile.write(sls3)
+
+    result = testdir.runpytest('-v')
+    result.assert_outcomes(failed=1)
+    result.stdout.fnmatch_lines([
+        "*not to contain pkg 'python'*"
+    ])
+
+
+sls4 = """\
+a_test_file_with_content:
+  file.managed:
+    - name: /tmp/managed.txt
+    - source: salt://{{ slspath }}/files/managed.txt
+    - user: nobody
+    - group: nobody
+    - mode: '0644'
+"""
+
+
+def test_show_sls_with_static_file_that_has_content(testdir):
+    testdir.makepyfile("""
+        from expects import expect
+        from pytest_salt_formula.matchers import *
+
+        def test_show_sls(show_sls):
+            with show_sls('teststate4a', {}) as sls:
+                print(sls.to_yaml())
+                expect(sls).to(
+                    contain_file('/tmp/managed.txt')
+                        .that_has_content('shenanigans')
+                )
+    """)
+
+    statedir = testdir.tmpdir.mkdir('../teststate4a/')
+    slsfile = statedir.join('init.sls')
+    slsfile.write(sls4)
+
+    filesd = statedir.mkdir('files')
+    filesd.join('managed.txt').write('\nshenanigans\n')
+
+    result = testdir.runpytest('-v')
+    result.assert_outcomes(passed=1)
+
+
+def test_show_sls_with_static_file_that_matches_pattern(testdir):
+    testdir.makepyfile("""
+        import re
+        from expects import expect
+        from pytest_salt_formula.matchers import *
+
+        def test_show_sls(show_sls):
+            pattern = re.compile(r'shen[an]{2}igans')
+            with show_sls('teststate4b', {}) as sls:
+                print(sls.to_yaml())
+                expect(sls).to(
+                    contain_file('/tmp/managed.txt')
+                        .that_has_content(pattern)
+                )
+    """)
+
+    statedir = testdir.tmpdir.mkdir('../teststate4b/')
+    slsfile = statedir.join('init.sls')
+    slsfile.write(sls4)
+
+    filesd = statedir.mkdir('files')
+    filesd.join('managed.txt').write('\nshenanigans\n')
+
+    result = testdir.runpytest('-v')
+    result.assert_outcomes(passed=1)
+
+
+sls5 = """\
+a_test_file_with_content:
+  file.managed:
+    - name: /tmp/managed.txt
+    - source: salt://{{ slspath }}/templates/managed.txt.j2
+    - user: nobody
+    - group: nobody
+    - mode: '0644'
+    - template: jinja
+    - context:
+        shenanigans: true
+"""
+
+
+def test_show_sls_with_template_that_has_content(testdir):
+    testdir.makepyfile("""
+        from expects import expect
+        from pytest_salt_formula.matchers import *
+
+        def test_show_sls(show_sls):
+            with show_sls('teststate5', {}) as sls:
+                print(sls.to_yaml())
+                expect(sls).to(
+                    contain_file('/tmp/managed.txt')
+                        .that_has_content('\\nshenanigans\\n')
+                )
+    """)
+
+    statedir = testdir.tmpdir.mkdir('../teststate5/')
+    slsfile = statedir.join('init.sls')
+    slsfile.write(sls5)
+
+    templatesd = statedir.mkdir('templates')
+    templatesd.join('managed.txt.j2').write('{% if shenanigans %}\nshenanigans\n{% endif %}')
+
+    result = testdir.runpytest('-v')
+    result.assert_outcomes(passed=1)
