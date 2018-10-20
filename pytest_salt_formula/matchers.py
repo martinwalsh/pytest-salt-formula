@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from expects.matchers import Matcher
 
-__all__ = ['contain_id', 'contain_pkg', 'contain_service', 'contain_file']
+__all__ = []  # disable * imports
 
 
 class StatefulMatcher(Matcher):
@@ -93,11 +93,6 @@ class ConditionalContainsMatcher(StatefulMatcher, WithMethodsMixin):
         super(ConditionalContainsMatcher, self).__init__(expected, parent)
         self._parent_reference = self
 
-    def _is_match(self, state):
-        raise NotImplementedError(
-            'subclasses should implement an `_is_match` method'
-        )
-
     def _match(self, lowstate):
         for state in lowstate:
             if self._is_match(state):
@@ -109,33 +104,32 @@ class ConditionalContainsMatcher(StatefulMatcher, WithMethodsMixin):
             reasons.append(self._no_match.format(self._expected))
         return ok, reasons
 
+    def _is_match(self, state):
+        return state['state'] == self.__class__.__name__[8:] and state['name'] == self._expected
+
+    @property
+    def _no_match(self):
+        return 'no {} state found with name {{!r}}'.format(self.__class__.__name__[8:])
+
 
 class contain_id(ConditionalContainsMatcher):
-    _no_match = 'state with id {!r} not found'
-
     def _is_match(self, state):
         return self._expected == state['__id__']
 
-
-class contain_pkg(ConditionalContainsMatcher):
-    _no_match = 'no package state found with name {!r}'
-
-    def _is_match(self, state):
-        return state['state'] == 'pkg' and state['name'] == self._expected
-
-
-class contain_service(ConditionalContainsMatcher):
-    _no_match = 'no service state found with name {!r}'
-
-    def _is_match(self, state):
-        return state['state'] == 'service' and state['name'] == self._expected
+    @property
+    def _no_match(self):
+        return 'state with id {{!r}} not found'
 
 
 class contain_file(ConditionalContainsMatcher):
-    _no_match = 'no file state found with name {!r}'
-
-    def _is_match(self, state):
-        return state['state'] == 'file' and state['name'] == self._expected
-
     def that_has_content(self, pattern_or_string):
         return FileContentMatcher(pattern_or_string, self)
+
+
+def find_matcher(mod):
+    subclasses = {c.__name__: c for c in ConditionalContainsMatcher.__subclasses__()}
+    matcher_name = 'contain_{}'.format(mod)
+    if matcher_name in subclasses:
+        return subclasses[matcher_name]
+
+    return type(matcher_name, (ConditionalContainsMatcher,), {})

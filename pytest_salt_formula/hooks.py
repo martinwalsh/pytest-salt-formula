@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+import pytest
 import logging
+
+from matchers import find_matcher
 
 
 def pytest_addoption(parser):
@@ -24,3 +27,11 @@ def pytest_configure(config):
     logging.getLogger('salt').setLevel(
         getattr(logging, config.getini('SALT_LOG_LEVEL'))
     )
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_setup(item):
+    for name in item.fixturenames:
+        if name.startswith('contain_') and name not in item.funcargs:
+            item.funcargs[name] = find_matcher(name[8:])
+    yield

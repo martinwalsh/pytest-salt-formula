@@ -344,9 +344,8 @@ shenanigans
 def test_show_sls_with_pkg_service_config(testdir):
     testdir.makepyfile("""
         from expects import expect
-        from pytest_salt_formula.matchers import *
 
-        def test_show_sls(show_sls):
+        def test_show_sls(show_sls, contain_service, contain_pkg, contain_file):
             with show_sls('teststate2a', {}) as sls:
                 print(sls.to_yaml())
                 expect(sls).to(contain_pkg('python'))
@@ -383,9 +382,8 @@ test_a_managed_package:
 def test_show_sls_with_missing_package_should_fail(testdir):
     testdir.makepyfile("""
         from expects import expect
-        from pytest_salt_formula.matchers import *
 
-        def test_show_sls(show_sls):
+        def test_show_sls(show_sls, contain_pkg):
             with show_sls('teststate3a', {}) as sls:
                 print(sls.to_yaml())
                 expect(sls).to(contain_pkg('does-not-exist'))
@@ -398,16 +396,15 @@ def test_show_sls_with_missing_package_should_fail(testdir):
     result = testdir.runpytest('-v')
     result.assert_outcomes(failed=1)
     result.stdout.fnmatch_lines([
-        "*but: no package state found with name 'does-not-exist'*"
+        "*but: no pkg state found with name 'does-not-exist'*"
     ])
 
 
 def test_show_sls_with_missing_package_when_using_to_not_should_pass(testdir):
     testdir.makepyfile("""
         from expects import expect
-        from pytest_salt_formula.matchers import *
 
-        def test_show_sls(show_sls):
+        def test_show_sls(show_sls, contain_pkg):
             with show_sls('teststate3b', {}) as sls:
                 print(sls.to_yaml())
                 expect(sls).to_not(contain_pkg('does-not-exist'))
@@ -424,9 +421,8 @@ def test_show_sls_with_missing_package_when_using_to_not_should_pass(testdir):
 def test_show_sls_with_existing_package_when_using_to_not_should_fail(testdir):
     testdir.makepyfile("""
         from expects import expect
-        from pytest_salt_formula.matchers import *
 
-        def test_show_sls(show_sls):
+        def test_show_sls(show_sls, contain_pkg):
             with show_sls('teststate3c', {}) as sls:
                 print(sls.to_yaml())
                 expect(sls).to_not(contain_pkg('python'))
@@ -457,9 +453,8 @@ a_test_file_with_content:
 def test_show_sls_with_static_file_that_has_content(testdir):
     testdir.makepyfile("""
         from expects import expect
-        from pytest_salt_formula.matchers import *
 
-        def test_show_sls(show_sls):
+        def test_show_sls(show_sls, contain_file):
             with show_sls('teststate4a', {}) as sls:
                 print(sls.to_yaml())
                 expect(sls).to(
@@ -479,13 +474,12 @@ def test_show_sls_with_static_file_that_has_content(testdir):
     result.assert_outcomes(passed=1)
 
 
-def test_show_sls_with_static_file_that_matches_pattern(testdir):
+def test_show_sls_with_static_file_that_matches_regex(testdir):
     testdir.makepyfile("""
         import re
         from expects import expect
-        from pytest_salt_formula.matchers import *
 
-        def test_show_sls(show_sls):
+        def test_show_sls(show_sls, contain_file):
             pattern = re.compile(r'shen[an]{2}igans')
             with show_sls('teststate4b', {}) as sls:
                 print(sls.to_yaml())
@@ -523,9 +517,8 @@ a_test_file_with_content:
 def test_show_sls_with_template_that_has_content(testdir):
     testdir.makepyfile("""
         from expects import expect
-        from pytest_salt_formula.matchers import *
 
-        def test_show_sls(show_sls):
+        def test_show_sls(show_sls, contain_file):
             with show_sls('teststate5', {}) as sls:
                 print(sls.to_yaml())
                 expect(sls).to(
