@@ -1,0 +1,2 @@
+{{ '{%' }} import_yaml "{{ cookiecutter.formula_name }}/defaults.yaml" as defaults {{ '%}' }}
+{{ '{%' }} set {{ cookiecutter.formula_name }} = salt['pillar.get']('{{ cookiecutter.formula_name }}', default=defaults.{{ cookiecutter.formula_name }}, merge=True) {{ '%}' }}
