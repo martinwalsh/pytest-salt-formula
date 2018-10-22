@@ -1,0 +1,15 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+
+[dev-packages]
+ipython = "*"
+testinfra = "*"
+paramiko = "*"
+pytest-salt-formula = {editable = true, ref = "master", git = "https://github.com/martinwalsh/pytest-salt-formula.git"}
+
+[requires]
+python_version = "2.7"
