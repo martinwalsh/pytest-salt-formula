@@ -82,17 +82,18 @@ def attach_file_content(sls, pillar, minion):
 
 
 @pytest.fixture(scope='function')
-def show_low_sls(minion):
+def show_low_sls(request, minion):
     @contextmanager
     def _show_low_sls(name, grains, pillar=None):
         for key, value in grains.items():
             minion.cmd('grains.setval', key, value)
 
         try:
-            yield attach_file_content(
-                LowSLS(minion.cmd('state.show_low_sls', name, pillar=pillar)),
-                pillar, minion
-            )
+            sls = LowSLS(minion.cmd('state.show_low_sls', name, pillar=pillar))
+            if request.config.getoption('verbose') >= 2:
+                print('$ salt-call --local state.show_low_sls {} --out yaml'.format(name))
+                print(sls.to_yaml())
+            yield attach_file_content(sls, pillar, minion)
         finally:
             for key in grains.keys():
                 minion.cmd('grains.delkey', key)
