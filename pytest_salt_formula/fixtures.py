@@ -82,9 +82,9 @@ def attach_file_content(sls, pillar, minion):
 
 
 @pytest.fixture(scope='function')
-def show_sls(minion):
+def show_low_sls(minion):
     @contextmanager
-    def _show_sls(name, grains, pillar=None):
+    def _show_low_sls(name, grains, pillar=None):
         for key, value in grains.items():
             minion.cmd('grains.setval', key, value)
 
@@ -96,4 +96,4 @@ def show_sls(minion):
         finally:
             for key in grains.keys():
                 minion.cmd('grains.delkey', key)
-    return _show_sls
+    return _show_low_sls

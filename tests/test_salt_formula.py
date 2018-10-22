@@ -177,10 +177,10 @@ whatever:
 """
 
 
-def test_show_sls(testdir):
+def test_show_low_sls(testdir):
     testdir.makepyfile("""
-        def test_show_sls(show_sls):
-            with show_sls('teststate1', {}) as sls:
+        def test_show_low_sls(show_low_sls):
+            with show_low_sls('teststate1', {}) as sls:
                 print(sls.to_yaml())
                 assert len(sls) > 0
     """)
@@ -192,13 +192,13 @@ def test_show_sls(testdir):
     result.assert_outcomes(passed=1)
 
 
-def test_show_sls_contain_id(testdir):
+def test_show_low_sls_contain_id(testdir):
     testdir.makepyfile("""
         from expects import expect
         from pytest_salt_formula.matchers import contain_id
 
-        def test_show_sls(show_sls):
-            with show_sls('teststate1a', {}) as sls:
+        def test_show_low_sls(show_low_sls):
+            with show_low_sls('teststate1a', {}) as sls:
                 expect(sls).to(contain_id('whatever'))
     """)
 
@@ -209,13 +209,13 @@ def test_show_sls_contain_id(testdir):
     result.assert_outcomes(passed=1)
 
 
-def test_show_sls_contain_id_with_comment(testdir):
+def test_show_low_sls_contain_id_with_comment(testdir):
     testdir.makepyfile("""
         from expects import expect
         from pytest_salt_formula.matchers import contain_id
 
-        def test_show_sls(show_sls):
-            with show_sls('teststate1b', {}) as sls:
+        def test_show_low_sls(show_low_sls):
+            with show_low_sls('teststate1b', {}) as sls:
                 print(sls.to_yaml())
                 expect(sls).to(
                     contain_id('whatever')
@@ -230,13 +230,13 @@ def test_show_sls_contain_id_with_comment(testdir):
     result.assert_outcomes(passed=1)
 
 
-def test_show_sls_contain_id_with_the_incorrect_comment(testdir):
+def test_show_low_sls_contain_id_with_the_incorrect_comment(testdir):
     testdir.makepyfile("""
         from expects import expect
         from pytest_salt_formula.matchers import contain_id
 
-        def test_show_sls(show_sls):
-            with show_sls('teststate1c', {}) as sls:
+        def test_show_low_sls(show_low_sls):
+            with show_low_sls('teststate1c', {}) as sls:
                 print(sls.to_yaml())
                 expect(sls).to(
                     contain_id('whatever')
@@ -254,13 +254,13 @@ def test_show_sls_contain_id_with_the_incorrect_comment(testdir):
     ])
 
 
-def test_show_sls_contain_id_with_invalid_property(testdir):
+def test_show_low_sls_contain_id_with_invalid_property(testdir):
     testdir.makepyfile("""
         from expects import expect
         from pytest_salt_formula.matchers import contain_id
 
-        def test_show_sls(show_sls):
-            with show_sls('teststate1d', {}) as sls:
+        def test_show_low_sls(show_low_sls):
+            with show_low_sls('teststate1d', {}) as sls:
                 print(sls.to_yaml())
                 expect(sls).to(
                     contain_id('whatever')
@@ -278,13 +278,13 @@ def test_show_sls_contain_id_with_invalid_property(testdir):
     ])
 
 
-def test_show_sls_contain_id_with_comment_and_whatever(testdir):
+def test_show_low_sls_contain_id_with_comment_and_whatever(testdir):
     testdir.makepyfile("""
         from expects import expect
         from pytest_salt_formula.matchers import contain_id
 
-        def test_show_sls(show_sls):
-            with show_sls('teststate1e', {}) as sls:
+        def test_show_low_sls(show_low_sls):
+            with show_low_sls('teststate1e', {}) as sls:
                 print(sls.to_yaml())
                 expect(sls).to(
                     contain_id('test_a_test_configurable_test_state')
@@ -341,12 +341,12 @@ shenanigans
 """
 
 
-def test_show_sls_with_pkg_service_config(testdir):
+def test_show_low_sls_with_pkg_service_config(testdir):
     testdir.makepyfile("""
         from expects import expect
 
-        def test_show_sls(show_sls, contain_service, contain_pkg, contain_file):
-            with show_sls('teststate2a', {}) as sls:
+        def test_show_low_sls(show_low_sls, contain_service, contain_pkg, contain_file):
+            with show_low_sls('teststate2a', {}) as sls:
                 print(sls.to_yaml())
                 expect(sls).to(contain_pkg('python'))
                 expect(sls).to(contain_file('/tmp/managed0.txt'))
@@ -379,12 +379,12 @@ test_a_managed_package:
 """
 
 
-def test_show_sls_with_missing_package_should_fail(testdir):
+def test_show_low_sls_with_missing_package_should_fail(testdir):
     testdir.makepyfile("""
         from expects import expect
 
-        def test_show_sls(show_sls, contain_pkg):
-            with show_sls('teststate3a', {}) as sls:
+        def test_show_low_sls(show_low_sls, contain_pkg):
+            with show_low_sls('teststate3a', {}) as sls:
                 print(sls.to_yaml())
                 expect(sls).to(contain_pkg('does-not-exist'))
     """)
@@ -400,12 +400,12 @@ def test_show_sls_with_missing_package_should_fail(testdir):
     ])
 
 
-def test_show_sls_with_missing_package_when_using_to_not_should_pass(testdir):
+def test_show_low_sls_with_missing_package_when_using_to_not_should_pass(testdir):
     testdir.makepyfile("""
         from expects import expect
 
-        def test_show_sls(show_sls, contain_pkg):
-            with show_sls('teststate3b', {}) as sls:
+        def test_show_low_sls(show_low_sls, contain_pkg):
+            with show_low_sls('teststate3b', {}) as sls:
                 print(sls.to_yaml())
                 expect(sls).to_not(contain_pkg('does-not-exist'))
     """)
@@ -418,12 +418,12 @@ def test_show_sls_with_missing_package_when_using_to_not_should_pass(testdir):
     result.assert_outcomes(passed=1)
 
 
-def test_show_sls_with_existing_package_when_using_to_not_should_fail(testdir):
+def test_show_low_sls_with_existing_package_when_using_to_not_should_fail(testdir):
     testdir.makepyfile("""
         from expects import expect
 
-        def test_show_sls(show_sls, contain_pkg):
-            with show_sls('teststate3c', {}) as sls:
+        def test_show_low_sls(show_low_sls, contain_pkg):
+            with show_low_sls('teststate3c', {}) as sls:
                 print(sls.to_yaml())
                 expect(sls).to_not(contain_pkg('python'))
     """)
@@ -450,12 +450,12 @@ a_test_file_with_content:
 """
 
 
-def test_show_sls_with_static_file_that_has_content(testdir):
+def test_show_low_sls_with_static_file_that_has_content(testdir):
     testdir.makepyfile("""
         from expects import expect
 
-        def test_show_sls(show_sls, contain_file):
-            with show_sls('teststate4a', {}) as sls:
+        def test_show_low_sls(show_low_sls, contain_file):
+            with show_low_sls('teststate4a', {}) as sls:
                 print(sls.to_yaml())
                 expect(sls).to(
                     contain_file('/tmp/managed.txt')
@@ -474,14 +474,14 @@ def test_show_sls_with_static_file_that_has_content(testdir):
     result.assert_outcomes(passed=1)
 
 
-def test_show_sls_with_static_file_that_matches_regex(testdir):
+def test_show_low_sls_with_static_file_that_matches_regex(testdir):
     testdir.makepyfile("""
         import re
         from expects import expect
 
-        def test_show_sls(show_sls, contain_file):
+        def test_show_low_sls(show_low_sls, contain_file):
             pattern = re.compile(r'shen[an]{2}igans')
-            with show_sls('teststate4b', {}) as sls:
+            with show_low_sls('teststate4b', {}) as sls:
                 print(sls.to_yaml())
                 expect(sls).to(
                     contain_file('/tmp/managed.txt')
@@ -514,12 +514,12 @@ a_test_file_with_content:
 """
 
 
-def test_show_sls_with_template_that_has_content(testdir):
+def test_show_low_sls_with_template_that_has_content(testdir):
     testdir.makepyfile("""
         from expects import expect
 
-        def test_show_sls(show_sls, contain_file):
-            with show_sls('teststate5', {}) as sls:
+        def test_show_low_sls(show_low_sls, contain_file):
+            with show_low_sls('teststate5', {}) as sls:
                 print(sls.to_yaml())
                 expect(sls).to(
                     contain_file('/tmp/managed.txt')

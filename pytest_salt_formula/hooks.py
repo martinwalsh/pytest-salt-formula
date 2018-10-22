@@ -19,7 +19,7 @@ def pytest_addoption(parser):
                   help='the log level for salt logs (default: error)')
     parser.addini('SALT_FUNCTION_WHITELIST',
                   type='linelist',
-                  default=['state.show_sls', 'test.ping', 'cp.get_file_str'],
+                  default=['state.show_low_sls', 'test.ping', 'cp.get_file_str'],
                   help='list of salt functions that should not be mocked')
 
 
