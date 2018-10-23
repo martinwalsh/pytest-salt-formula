@@ -35,7 +35,7 @@ suites:
 platforms:
   - name: centos-7.5
     driver_config:
-      image: salt-2017.7.5/centos-75
+      image: salt-2017.7.5/centos-7.5
       run_command: /usr/sbin/init
       privileged: true
       provision_command:
