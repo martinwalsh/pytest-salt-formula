@@ -30,8 +30,8 @@ class PropertyValueMatcher(StatefulMatcher, WithMethodsMixin):
         super(PropertyValueMatcher, self).__init__(expected, parent)
         self._parent_reference = self._parent._parent
 
-    def _match(self, lowstate):
-        ok, reasons = self._parent._match(lowstate)
+    def _match(self, lowsls):
+        ok, reasons = self._parent._match(lowsls)
 
         if not ok:
             return ok, reasons
@@ -47,20 +47,24 @@ class PropertyValueMatcher(StatefulMatcher, WithMethodsMixin):
 
 
 class FileContentMatcher(StatefulMatcher):
-    def _match(self, lowstate):
-        ok, reasons = self._parent._match(lowstate)
+    def _match(self, lowsls):
+        ok, reasons = self._parent._match(lowsls)
 
         if not ok:
             return ok, reasons
 
+        content = self._parent._matched['__file_content']
+        if isinstance(content, dict):  # we matched a file.recurse state
+            content = self._parent._matched['__file_content'][self._parent._expected]
+
         if hasattr(self._expected, 'pattern'):  # regex match attempt
-            ok = self._expected.search(self._parent._matched['__file_content']) is not None
+            ok = self._expected.search(content) is not None
             if not ok:
                 reasons.append(
                     'pattern {!r} not found in file content'.format(self._expected.pattern)
                 )
         else:
-            ok = self._expected in self._parent._matched['__file_content']
+            ok = self._expected in content
             if not ok:
                 reasons.append(
                     'text {!r} not found in file content'.format(self._expected)
@@ -70,8 +74,8 @@ class FileContentMatcher(StatefulMatcher):
 
 
 class WithPropertyMatcher(StatefulMatcher):
-    def _match(self, lowstate):
-        ok, reasons = self._parent._match(lowstate)
+    def _match(self, lowsls):
+        ok, reasons = self._parent._match(lowsls)
         try:
             self._matched = self._parent._matched[self._expected]
         except KeyError:
@@ -93,8 +97,8 @@ class ConditionalContainsMatcher(StatefulMatcher, WithMethodsMixin):
         super(ConditionalContainsMatcher, self).__init__(expected, parent)
         self._parent_reference = self
 
-    def _match(self, lowstate):
-        for state in lowstate:
+    def _match(self, lowsls):
+        for state in lowsls:
             if self._is_match(state):
                 self._matched = state
                 break
@@ -122,6 +126,13 @@ class contain_id(ConditionalContainsMatcher):
 
 
 class contain_file(ConditionalContainsMatcher):
+    def _is_match(self, state):
+        return super(contain_file, self)._is_match(state) or (
+            '__file_content' in state and
+            isinstance(state['__file_content'], dict) and
+            self._expected in state['__file_content']
+        )
+
     def that_has_content(self, pattern_or_string):
         return FileContentMatcher(pattern_or_string, self)
 

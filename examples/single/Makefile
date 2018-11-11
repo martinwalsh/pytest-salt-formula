@@ -5,9 +5,10 @@ test: test-unit test-kitchen
 
 install:
 	pipenv install --dev
+	bundle install
 
 test-unit:
-	pipenv run pytest $(OPTS) test/unit
+	pipenv run pytest -p no:cacheprovider $(OPTS) test/unit
 
 test-kitchen:
 	bundle exec kitchen test

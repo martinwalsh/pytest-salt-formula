@@ -6,10 +6,10 @@ install:
 
 #> run tests
 test: | install
-	pipenv run pytest $(if $(OPTS),$(OPTS),-v) $(if $(TEST),$(TEST))
+	pipenv run pytest -p no:cacheprovider $(if $(OPTS),$(OPTS),-v) $(if $(TEST),$(TEST))
 
 clean::
-	rm -rf pytest_salt_formula.egg-info/ .pytest_cache/
+	rm -rf pytest_salt_formula.egg-info/
 
 
 .PHONY: clean test install

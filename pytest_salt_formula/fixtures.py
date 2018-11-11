@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import pytest
 import salt.utils
 import salt.config
@@ -6,6 +7,7 @@ import salt.client
 
 from utils import abspath, touch
 from contextlib import contextmanager
+from salt.exceptions import SaltException
 
 
 @pytest.fixture(scope='session')
@@ -59,25 +61,65 @@ class LowSLS(list):
         return salt.utils.yaml.safe_dump(self._sls, default_flow_style=False)
 
 
-def attach_file_content(sls, pillar, minion):
+def get_file_content(source, state, minion, pillar):
+    if state.get('template') is None:
+        cached = minion.cmd('cp.get_file_str', path=source)
+        if cached is not False:
+            return cached
+    else:
+        cached = minion.cmd(
+            'cp.get_template',
+            path=source,
+            dest='',  # an empty string forces download and cache of the rendered template
+            template=state['template'],
+            context=state.get('context'),
+            pillar=pillar,
+        )
+        if cached is not False:
+            with open(cached) as f:
+                return f.read()
+    raise SaltException('Unable to locate source for {!r}'.format(source))
+
+
+def attach_file_content(sls, minion, pillar):
     for state in sls:
         if state['state'] == 'file':
-            template = state.get('template', None)
-            source = state.get('source', None)
-            if source is not None:
-                if template is None:
-                    state['__file_content'] = minion.cmd('cp.get_file_str', path=source)
+            if state['fun'] == 'rename':  # the `source` of `file.rename` is not a local file
+                continue
+
+            if 'source' in state and 'sources' in state:
+                raise SaltException(
+                    '`source` and `sources` are mutually exclusive in state with id `{}`.'.format(state['__id__'])
+                )
+
+            if 'sources' in state:
+                content = []
+                for source in state['sources']:
+                    content.append(get_file_content(source, state, minion, pillar))
+                state['__file_content'] = ''.join(content)
+
+            if 'source' in state:
+                if state['fun'] == 'recurse':
+                    files = {}
+                    prefix = state['source'][7:]  # remove the salt:// portion of the source url
+                    for path in minion.cmd('cp.list_master', prefix=prefix):
+                        destination = os.path.join(state['name'], path[len(prefix)+1:])
+                        files[destination] = get_file_content(
+                            'salt://{}'.format(path), state, minion, pillar
+                        )
+                    state['__file_content'] = files
+                    print(files)
                 else:
-                    cached = minion.cmd(
-                        'cp.get_template',
-                        path=source,
-                        dest='',  # this will cause the rendered file to be downloaded to the cache
-                        template=template,
-                        context=state.get('context', None),
-                        pillar=pillar,
-                    )
-                    with open(cached) as f:
-                        state['__file_content'] = f.read()
+                    if not isinstance(state['source'], list):
+                        state['source'] = [state['source']]
+                    for source in state['source']:
+                        try:
+                            state['__file_content'] = get_file_content(source, state, minion, pillar)
+                            break
+                        except SaltException:
+                            pass
+                    else:
+                        raise SaltException('Unable to locate source for {!r}'.format(state['source']))
     return sls
 
 
@@ -93,7 +135,7 @@ def show_low_sls(request, minion):
             if request.config.getoption('verbose') >= 2:
                 print('$ salt-call --local state.show_low_sls {} --out yaml'.format(name))
                 print(sls.to_yaml())
-            yield attach_file_content(sls, pillar, minion)
+            yield attach_file_content(sls, minion, pillar)
         finally:
             for key in grains.keys():
                 minion.cmd('grains.delkey', key)
