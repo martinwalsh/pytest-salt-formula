@@ -58,7 +58,7 @@ class LowSLS(list):
         list.__init__(self, sls)
 
     def to_yaml(self):
-        return salt.utils.yaml.safe_dump(self._sls, default_flow_style=False)
+        return salt.utils.yamldumper.safe_dump(self._sls, default_flow_style=False)
 
 
 def get_file_content(source, state, minion, pillar):
