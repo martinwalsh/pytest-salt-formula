@@ -54,17 +54,15 @@ the coverage at least stays the same before you submit a pull request.
 Todo
 ----
 
-Implement order checking, something like the following:
+Implement order checking, something like the following::
 
-```
-def test_install_package(show_low_sls, contain_pkg, contain_file):
-    with show_low_sls('statename', {}) as sls:
-       expect(sls).to(
-           contain_pkg('package-name').before(
-               contain_file('/etc/service-name/service-name.conf')
+    def test_install_package(show_low_sls, contain_pkg, contain_file):
+        with show_low_sls('statename', {}) as sls:
+           expect(sls).to(
+               contain_pkg('package-name').before(
+                   contain_file('/etc/service-name/service-name.conf')
+               )
            )
-       )
-```
 
 License
 -------
