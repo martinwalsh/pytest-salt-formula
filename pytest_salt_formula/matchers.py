@@ -63,7 +63,8 @@ class FileContentMatcher(StatefulMatcher):
             content = match.get('__file_content')
             if content is not None and isinstance(content, dict):  # we matched a file.recurse state
                 content = match['__file_content'][self._parent._expected]
-            return content
+            # FIXME: fall back to empty string to avoid NoneType comparisons (does this work in all circumstances?)
+            return content or ''
 
         if hasattr(self._expected, 'pattern'):  # regex match attempt
             ok = any(self._expected.search(get_content(m)) for m in self._parent._matched)
@@ -88,8 +89,11 @@ class WithPropertyMatcher(StatefulMatcher):
 
         if self._matched == []:
             reasons.append(
-                '{!r} property not found in state with id {!r}'.format(
-                    self._expected, self._parent._expected
+                '{!r} property not found in {} with {} {!r}'.format(
+                    self._expected,
+                    self._parent._matcher_name,
+                    self._parent._matcher_attr,
+                    self._parent._expected
                 )
             )
 

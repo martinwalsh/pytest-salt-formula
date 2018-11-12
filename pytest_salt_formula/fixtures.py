@@ -52,15 +52,6 @@ def minion(request, minion_opts):
     return caller
 
 
-class LowSLS(list):
-    def __init__(self, sls):
-        self._sls = sls
-        list.__init__(self, sls)
-
-    def to_yaml(self):
-        return salt.utils.yamldumper.safe_dump(self._sls, default_flow_style=False)
-
-
 def get_file_content(source, state, minion, pillar):
     if state.get('template') is None:
         cached = minion.cmd('cp.get_file_str', path=source)
@@ -122,6 +113,15 @@ def attach_file_content(sls, minion, pillar):
     return sls
 
 
+class LowSLS(list):
+    def __init__(self, sls, minion, pillar):
+        self._sls = attach_file_content(sls, minion, pillar)
+        list.__init__(self, sls)
+
+    def to_yaml(self):
+        return salt.utils.yamldumper.safe_dump(self._sls, default_flow_style=False)
+
+
 @pytest.fixture(scope='function')
 def show_low_sls(request, minion):
     @contextmanager
@@ -130,11 +130,11 @@ def show_low_sls(request, minion):
             minion.cmd('grains.setval', key, value)
 
         try:
-            sls = LowSLS(minion.cmd('state.show_low_sls', name, pillar=pillar))
+            sls = LowSLS(minion.cmd('state.show_low_sls', name, pillar=pillar), minion, pillar)
             if request.config.getoption('verbose') >= 2:
                 print('$ salt-call --local state.show_low_sls {} --out yaml'.format(name))
                 print(sls.to_yaml())
-            yield attach_file_content(sls, minion, pillar)
+            yield sls
         finally:
             for key in grains.keys():
                 minion.cmd('grains.delkey', key)
