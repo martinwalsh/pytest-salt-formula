@@ -108,7 +108,6 @@ def attach_file_content(sls, minion, pillar):
                             'salt://{}'.format(path), state, minion, pillar
                         )
                     state['__file_content'] = files
-                    print(files)
                 else:
                     if not isinstance(state['source'], list):
                         state['source'] = [state['source']]

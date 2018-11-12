@@ -8,7 +8,9 @@ class StatefulMatcher(Matcher):
     def __init__(self, expected, parent=None):
         self._expected = expected
         self._parent = parent
-        self._matched = None
+        self._matched = []
+        self._matcher_name = self.__class__.__name__[8:]
+        self._matcher_attr = 'name'
 
     def _match(self, subject):
         raise NotImplementedError(
@@ -36,11 +38,15 @@ class PropertyValueMatcher(StatefulMatcher, WithMethodsMixin):
         if not ok:
             return ok, reasons
 
-        ok = self._expected == self._parent._matched
+        ok = any(m[self._parent._expected] == self._expected for m in self._parent._matched)
         if not ok:
             reasons.append(
-                'value {!r} does not match property {!r} from state with id {!r}'.format(
-                    self._expected, self._parent._matched, self._parent._parent._expected
+                'value {!r} does not match property {!r} from {} with {} {!r}'.format(
+                    self._expected,
+                    self._parent._expected,
+                    self._parent._parent._matcher_name,
+                    self._parent._parent._matcher_attr,
+                    self._parent._parent._expected
                 )
             )
         return ok, reasons
@@ -53,18 +59,20 @@ class FileContentMatcher(StatefulMatcher):
         if not ok:
             return ok, reasons
 
-        content = self._parent._matched['__file_content']
-        if isinstance(content, dict):  # we matched a file.recurse state
-            content = self._parent._matched['__file_content'][self._parent._expected]
+        def get_content(match):
+            content = match.get('__file_content')
+            if content is not None and isinstance(content, dict):  # we matched a file.recurse state
+                content = match['__file_content'][self._parent._expected]
+            return content
 
         if hasattr(self._expected, 'pattern'):  # regex match attempt
-            ok = self._expected.search(content) is not None
+            ok = any(self._expected.search(get_content(m)) for m in self._parent._matched)
             if not ok:
                 reasons.append(
                     'pattern {!r} not found in file content'.format(self._expected.pattern)
                 )
         else:
-            ok = self._expected in content
+            ok = any(self._expected in get_content(m) for m in self._parent._matched)
             if not ok:
                 reasons.append(
                     'text {!r} not found in file content'.format(self._expected)
@@ -76,15 +84,16 @@ class FileContentMatcher(StatefulMatcher):
 class WithPropertyMatcher(StatefulMatcher):
     def _match(self, lowsls):
         ok, reasons = self._parent._match(lowsls)
-        try:
-            self._matched = self._parent._matched[self._expected]
-        except KeyError:
+        self._matched = [match for match in self._parent._matched if self._expected in match]
+
+        if self._matched == []:
             reasons.append(
                 '{!r} property not found in state with id {!r}'.format(
                     self._expected, self._parent._expected
                 )
             )
-        return self._matched is not None, reasons
+
+        return self._matched != [], reasons
 
     def __call__(self, value):
         return PropertyValueMatcher(value, self)
@@ -100,29 +109,33 @@ class ConditionalContainsMatcher(StatefulMatcher, WithMethodsMixin):
     def _match(self, lowsls):
         for state in lowsls:
             if self._is_match(state):
-                self._matched = state
-                break
+                self._matched.append(state)
 
-        ok, reasons = self._matched is not None, []
+        ok, reasons = self._matched != [], []
         if not ok:
             reasons.append(self._no_match.format(self._expected))
         return ok, reasons
 
     def _is_match(self, state):
-        return state['state'] == self.__class__.__name__[8:] and state['name'] == self._expected
+        return state['state'] == self._matcher_name and state['name'] == self._expected
 
     @property
     def _no_match(self):
-        return 'no {} state found with name {{!r}}'.format(self.__class__.__name__[8:])
+        return 'no {} state found with name {{!r}}'.format(self._matcher_name)
 
 
 class contain_id(ConditionalContainsMatcher):
+    def __init__(self, expected, parent=None):
+        super(contain_id, self).__init__(expected, parent)
+        self._matcher_name = 'state'
+        self._matcher_attr = 'id'
+
     def _is_match(self, state):
         return self._expected == state['__id__']
 
     @property
     def _no_match(self):
-        return 'state with id {{!r}} not found'
+        return 'state with id {!r} not found'
 
 
 class contain_file(ConditionalContainsMatcher):

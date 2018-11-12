@@ -239,9 +239,8 @@ def test_show_low_sls_contain_id(testdir):
     _create_assets(testdir, {
         'pyfile': """
             from expects import expect
-            from pytest_salt_formula.matchers import contain_id
 
-            def test_show_low_sls(show_low_sls):
+            def test_show_low_sls(show_low_sls, contain_id):
                 with show_low_sls('teststate1b', {}) as sls:
                     expect(sls).to(contain_id('whatever'))
         """,
@@ -266,9 +265,8 @@ def test_show_low_sls_contain_id_with_comment(testdir):
     _create_assets(testdir, {
         'pyfile': """
             from expects import expect
-            from pytest_salt_formula.matchers import contain_id
 
-            def test_show_low_sls(show_low_sls):
+            def test_show_low_sls(show_low_sls, contain_id):
                 with show_low_sls('teststate1c', {}) as sls:
                     expect(sls).to(
                         contain_id('whatever')
@@ -296,9 +294,8 @@ def test_show_low_sls_contain_id_with_the_incorrect_comment(testdir):
     _create_assets(testdir, {
         'pyfile': """
             from expects import expect
-            from pytest_salt_formula.matchers import contain_id
 
-            def test_show_low_sls(show_low_sls):
+            def test_show_low_sls(show_low_sls, contain_id):
                 with show_low_sls('teststate1d', {}) as sls:
                     expect(sls).to(
                         contain_id('whatever')
@@ -329,9 +326,8 @@ def test_show_low_sls_contain_id_with_invalid_property(testdir):
     _create_assets(testdir, {
         'pyfile': """
             from expects import expect
-            from pytest_salt_formula.matchers import contain_id
 
-            def test_show_low_sls(show_low_sls):
+            def test_show_low_sls(show_low_sls, contain_id):
                 with show_low_sls('teststate1e', {}) as sls:
                     expect(sls).to(
                         contain_id('whatever')
@@ -352,9 +348,8 @@ def test_show_low_sls_contain_id_with_comment_and_whatever(testdir):
     _create_assets(testdir, {
         'pyfile': """
             from expects import expect
-            from pytest_salt_formula.matchers import contain_id
 
-            def test_show_low_sls(show_low_sls):
+            def test_show_low_sls(show_low_sls, contain_id):
                 with show_low_sls('teststate1f', {}) as sls:
                     expect(sls).to(
                         contain_id('test_a_test_configurable_test_state')
@@ -533,6 +528,10 @@ def test_show_low_sls_with_static_file_that_has_content(testdir):
                         contain_file('/tmp/managed.txt')
                             .that_has_content('shenanigans')
                     )
+                    expect(sls).not_to(
+                        contain_file('/tmp/managed.txt')
+                            .that_has_content('whatever')
+                    )
         """,
         'states': {
             'teststate4a': {
@@ -563,11 +562,16 @@ def test_show_low_sls_with_static_file_that_matches_regex(testdir):
             from expects import expect
 
             def test_show_low_sls(show_low_sls, contain_file):
-                pattern = re.compile(r'shen[an]{2}igans')
+                pattern1 = re.compile(r'shen[an]{2}igans')
+                pattern2 = re.compile(r'whatever')
                 with show_low_sls('teststate4b', {}) as sls:
                     expect(sls).to(
                         contain_file('/tmp/managed.txt')
-                            .that_has_content(pattern)
+                            .that_has_content(pattern1)
+                    )
+                    expect(sls).to_not(
+                        contain_file('/tmp/managed.txt')
+                            .that_has_content(pattern2)
                     )
         """,
         'states': {
