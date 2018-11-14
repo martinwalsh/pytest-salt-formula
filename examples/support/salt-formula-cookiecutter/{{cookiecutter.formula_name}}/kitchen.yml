@@ -30,7 +30,7 @@ provisioner:
     environment: test
 
 suites:
-  - name: single
+  - name: {{ cookiecutter.formula_name }}
 
 platforms:
   - name: centos-7.5

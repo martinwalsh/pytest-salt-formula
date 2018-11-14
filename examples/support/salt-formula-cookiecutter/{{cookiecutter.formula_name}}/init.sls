@@ -1,9 +1,9 @@
 {{ '{%' }} from "{{ cookiecutter.formula_name }}/map.jinja" import {{ cookiecutter.formula_name }} with context {{ '%}' }}
 
-# {{ cookiecutter.formula_name }}_package:
-#   pkg.installed:
-#     - name: {{ cookiecutter.formula_name }}
-#
+{{ cookiecutter.formula_name }}_package:
+  pkg.installed:
+    - name: {{ cookiecutter.formula_name }}
+
 # {{ cookiecutter.formula_name }}_main_config:
 #   file.managed:
 #     - name: /etc/{{ cookiecutter.formula_name }}/{{ cookiecutter.formula_name }}.conf
