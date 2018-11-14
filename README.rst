@@ -64,6 +64,11 @@ Implement order checking, something like the following::
                )
            )
 
+Currently, pytest_salt_formula relies on pytest's rootdir detection for setting the default location
+of custom salt formulae. Therefore you must include a pytest.ini (or alternate) in your formula
+(or explicitly specify SALT_FILE_ROOTS or --rootdir) otherwise you risk a runaway test process when an
+undesirable rootdir is detected. It should be possible to limit pytest's rootdir exploration.
+
 License
 -------
 
