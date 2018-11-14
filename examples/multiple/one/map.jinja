@@ -1,0 +1,2 @@
+{% import_yaml "one/defaults.yaml" as defaults %}
+{% set one = salt['pillar.get']('one', default=defaults.one, merge=True) %}

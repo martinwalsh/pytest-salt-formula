@@ -1,0 +1,17 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+salt = "==2017.7.5"
+tornado = "==4.5.3"
+
+[dev-packages]
+ipython = "*"
+testinfra = "*"
+paramiko = "*"
+pytest-salt-formula = {editable = true, ref = "fe9b6cac567780570064ea7d5a827040b2da799f", git = "https://github.com/martinwalsh/pytest-salt-formula.git"}
+
+[requires]
+python_version = "2.7"
