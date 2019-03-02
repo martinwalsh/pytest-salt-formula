@@ -7,37 +7,35 @@ provisioner:
   name: salt_solo
   salt_install: bootstrap
   salt_bootstrap_url: https://bootstrap.saltstack.com
-  salt_version: 2017.7.5
+  salt_version: 2018.3.3
   is_file_root: true
   salt_copy_filter:
     - .git
-  dependencies:
-    - name: one
-      path: ../
+  dependencies: []
   require_chef: false
-  formula: two
+  formula: one
   log_level: error
   state_top:
     base:
       '*':
-        - two
+        - one
   pillars:
     top.sls:
       base:
         '*':
-          - two
-    two.sls:
-      two: {}
+          - one
+    one.sls:
+      one: {}
   grains:
     environment: test
 
 suites:
-  - name: two
+  - name: one
 
 platforms:
   - name: centos-7.5
     driver_config:
-      image: salt-2017.7.5/centos-7.5
+      image: salt-2017.7.5/centos7
       run_command: /usr/sbin/init
       privileged: true
       provision_command:

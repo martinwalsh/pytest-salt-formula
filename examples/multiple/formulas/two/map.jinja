@@ -1,0 +1,2 @@
+{% import_yaml slspath ~ '/defaults.yaml' as defaults %}
+{% set settings = salt['pillar.get']('two', default=defaults.two, merge=True) %}

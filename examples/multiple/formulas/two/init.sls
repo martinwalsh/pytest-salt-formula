@@ -1,4 +1,4 @@
-{% from "two/map.jinja" import two with context %}
+{% from slspath ~ '/map.jinja' import settings with context %}
 
 include:
   - one

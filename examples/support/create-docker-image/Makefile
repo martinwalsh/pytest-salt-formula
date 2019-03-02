@@ -1,13 +1,16 @@
-export SALT_VERSION := 2017.7.5
+export SALT_VERSION := 2018.3.3
+
+default:
+	@:
 
 image:
-	kitchen converge && \
+	bundle exec kitchen converge && \
 		CID=$$(sed -nE 's/container_id: (.*)/\1/p' .kitchen/*.yml); \
-		docker commit $$CID salt-$(SALT_VERSION)/centos-7.5
-	@echo "Intermediate container saved to image named salt-$(SALT_VERSION)/centos-7.5"
+		docker commit $$CID salt-$(SALT_VERSION)/centos7
+	@echo "Intermediate container saved to image named salt-$(SALT_VERSION)/centos7"
 
 clean:
-	kitchen destroy
+	bundle exec kitchen destroy
 	rm -rf .kitchen
 
-.PHONY: image clean
+.PHONY: default image clean

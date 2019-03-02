@@ -24,7 +24,7 @@ setup(
     long_description=read('README.rst'),
     py_modules=['pytest_salt_formula'],
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
-    install_requires=['pytest>=3.5.0', 'salt>=2017.7.5,<=2018.3.3', 'expects>=0.8.0'],
+    install_requires=['pytest>=3.5.0', 'salt>=2018.3.3', 'expects>=0.8.0'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Framework :: Pytest',
